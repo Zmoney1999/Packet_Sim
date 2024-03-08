@@ -1,58 +1,58 @@
-import random
-import time
-import queue
+import numpy as np
 
+class Packet:
+    def __init__(self, arrival_time):
+        """Initialize a packet with its arrival time."""
+        self.arrival_time = arrival_time
+        # Optional: Add more attributes here if needed for advanced processing
 
-def simulate_packet(lambda_value , simulation_time , buffer_capacity , packet_buffer):
-
-    current_time = 0 #Average rate (packets per second)
-    packet_count = 0 # Total simulation time
-    lost_packets = 0
-
-    while current_time < simulation_time:
-        # Generate time until next packet arrival
-        next_arrival = random.expovariate(lambda_value)
-
-        #Update the current time with them time until the next arrival
-        current_time += next_arrival
-
-        if current_time < simulation_time:
-            packet_count +=1 # Increase the packet count 
-            #INFO: Buffer is full so that packet is lost
-            #TODO: We can implement AQM algorithims here
-            if packet_buffer.full():
-                #TEST simulate a buffer overflow
-                print("BUFFER OVERFLOW")
-                # The packet is lost when the buffer is full
-                lost_packets +=1
-                print(f"Packet {packet_count} arrived at time {current_time:.2f}s")
-            #Process the packet if the buffer isnt full
-            else:
-                packet_buffer.put(packet_count)
-                print(f"Packet {packet_count} arrived and buffered at time {current_time:.2f}s")
-    print(f"Simulation finished. {packet_count} packets arrived over {simulation_time} seconds.")
-
-    return lost_packets
-
+class Router:
+    def __init__(self, processing_rate, max_buffer_size):
+        """Initialize the router with given processing rate and buffer size."""
+        self.processing_rate = processing_rate
+        self.max_buffer_size = max_buffer_size
+        self.queue = []  # Queue to hold packets
+        self.dropped_packets = 0  # Counter for dropped packets
+        self.total_packets = 0  # Counter for total packets arrived
     
-def main():
+    def process_packet(self, packet):
+        """Process an incoming packet. Implement AQM logic here."""
+        
+        # AQM/RED Algorithm Placeholder: Implement your logic to decide whether to drop or enqueue the packet
+        ##########################
+        # IMPLEMENT AQM LOGIC HERE
+        ##########################
+        
+        if len(self.queue) >= self.max_buffer_size:
+            self.dropped_packets += 1
+            return False  # Drop packet due to buffer overflow
+        else:
+            self.queue.append(packet)  # Accept and enqueue the packet
+            return True
 
-#Program Start
+    def simulate_arrivals(self, lambda_rate, duration):
+        """Simulate packet arrivals at the router over a specified duration."""
+        current_time = 0
+        while current_time < duration:
+            # Generate next packet arrival using exponential distribution
+            interarrival_time = np.random.exponential(1/lambda_rate)
+            current_time += interarrival_time
+            packet = Packet(current_time)
+            
+            self.total_packets += 1
+            self.process_packet(packet)
 
-    lambda_value = 1 # Arrival Rate
-    simulation_time = 10 #MAX simulation time
-    buffer_capacity = 5 #MAX buffer capacity
-    packet_buffer = queue.Queue(maxsize=buffer_capacity)
-    #This function will simulate packet arriving at a router
-    lost_packets = simulate_packet(lambda_value , simulation_time , buffer_capacity , packet_buffer)
+# Simulation parameters
+lambda_rate = 100  # Average packets per second
+duration = 10  # Simulation time in seconds
+processing_rate = 100  # Packets per second, adjust as needed
+max_buffer_size = 1000  # Maximum packets the buffer can hold
 
+# Initialize router and run simulation
+router = Router(processing_rate, max_buffer_size)
+router.simulate_arrivals(lambda_rate, duration)
 
-    #TEST see which packets were processed
-    while not packet_buffer.empty():
-        packet_number = packet_buffer.get()
-        print("Packet #: " , packet_number , " was processed")
-
-    print("\n # of packets lost" ,lost_packets)
-#Program End
-if __name__ == "__main__":
-    main()
+# Output simulation results
+print(f"Total packets: {router.total_packets}")
+print(f"Dropped packets: {router.dropped_packets}")
+print(f"Drop rate: {router.dropped_packets / router.total_packets:.2%}")
